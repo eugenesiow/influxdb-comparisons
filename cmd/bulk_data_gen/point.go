@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
@@ -31,8 +32,7 @@ type Point struct {
 
 // Using these literals prevents the slices from escaping to the heap, saving
 // a few micros per call:
-var (
-)
+var ()
 
 // scratchBufPool helps reuse serialization scratch buffers.
 var scratchBufPool = &sync.Pool{
@@ -406,6 +406,53 @@ func (p *Point) SerializeOpenTSDBBulk(w io.Writer) error {
 		}
 	}
 
+	return nil
+}
+
+// SerializeAkumuliBulk writes Point data to the given writer, conforming to
+// the Akumuli RESP protocol.
+//
+// This function writes lines in this format:
+// +<metric> <tags>\r\n
+// +<timestamp>\r\n
+// +<value>\r\n
+//
+// For example:
+// +cpu.usage_user hostname=host_01 region-ap-southeast-2 datacenter=ap-southeast-2a\r\n
+// :14516064000000\r\n
+// +99.5170917755353770\r\n
+//
+func (p *Point) SerializeAkumuliBulk(w io.Writer) error {
+	metricBase := string(p.MeasurementName)
+	var tagsBuilder bytes.Buffer
+	timestamp := p.Timestamp.UTC().UnixNano()
+	for i := 0; i < len(p.TagKeys); i++ {
+		stag := fmt.Sprintf(" %s=%s", p.TagKeys[i], p.TagValues[i])
+		tagsBuilder.WriteString(stag)
+	}
+	tagline := tagsBuilder.String()
+	var value float64
+	for i := 0; i < len(p.FieldKeys); i++ {
+		metric := metricBase + "." + string(p.FieldKeys[i])
+		switch x := p.FieldValues[i].(type) {
+		case int:
+			value = float64(x)
+		case int64:
+			value = float64(x)
+		case float32:
+			value = float64(x)
+		case float64:
+			value = float64(x)
+		default:
+			panic("bad numeric value for Akumuli serialization")
+		}
+		line := fmt.Sprintf("+%s%s\r\n", metric, tagline)
+		io.WriteString(w, line)
+		line = fmt.Sprintf(":%d\r\n", timestamp)
+		io.WriteString(w, line)
+		line = fmt.Sprintf("+%.17g\r\n", value)
+		io.WriteString(w, line)
+	}
 	return nil
 }
 
