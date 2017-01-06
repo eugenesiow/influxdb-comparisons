@@ -22,21 +22,21 @@ var useCaseMatrix = map[string]map[string]map[string]QueryGeneratorMaker{
 			"cassandra":   NewCassandraDevopsSingleHost,
 			"es-http":     NewElasticSearchDevopsSingleHost,
 			"influx-http": NewInfluxDevopsSingleHost,
-			"mongo":       NewMongoDevopsSingleHost,
 			"opentsdb":    NewOpenTSDBDevopsSingleHost,
+			"akumuli":     NewAkumuliDevopsSingleHost,
 		},
 		"1-host-12-hr": {
 			"cassandra":   NewCassandraDevopsSingleHost12hr,
 			"es-http":     NewElasticSearchDevopsSingleHost12hr,
 			"influx-http": NewInfluxDevopsSingleHost12hr,
-			"mongo":       NewMongoDevopsSingleHost12hr,
 			"opentsdb":    NewOpenTSDBDevopsSingleHost12hr,
+			"akumuli":     NewAkumuliDevopsSingleHost12hr,
 		},
 		"8-host-1-hr": {
 			"cassandra":   NewCassandraDevops8Hosts,
 			"influx-http": NewInfluxDevops8Hosts,
-			"mongo":       NewMongoDevops8Hosts1Hr,
 			"opentsdb":    NewOpenTSDBDevops8Hosts,
+			"akumuli":     NewAkumuliDevops8Hosts,
 		},
 		"groupby": {
 			"cassandra":   NewCassandraDevopsGroupBy,
@@ -185,7 +185,7 @@ func main() {
 
 	// Print stats:
 	keys := []string{}
-	for k, _ := range stats {
+	for k := range stats {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)

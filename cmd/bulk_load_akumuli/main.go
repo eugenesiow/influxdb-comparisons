@@ -42,7 +42,6 @@ func init() {
 	flag.StringVar(&csvDaemonUrls, "urls", "127.0.0.1:8282", "OpenTSDB URLs, comma-separated. Will be used in a round-robin fashion.")
 	flag.IntVar(&batchSize, "batch-size", 5000, "Batch size (input lines).")
 	flag.IntVar(&workers, "workers", 1, "Number of parallel requests to make.")
-	//flag.DurationVar(&backoff, "backoff", time.Second, "Time to sleep between requests when server indicates backpressure is needed.")
 	flag.BoolVar(&doLoad, "do-load", true, "Whether to write data. Set this flag to false to check input read speed.")
 	flag.BoolVar(&memprofile, "memprofile", false, "Whether to write a memprofile (file automatically determined).")
 
@@ -102,29 +101,35 @@ func scan(linesPerBatch int) int64 {
 	var itemsRead int64
 
 	newline := []byte("\r\n")
+	batch := bufPool.Get().(*bytes.Buffer)
+	batch.Reset()
 
 	scanner := bufio.NewScanner(bufio.NewReaderSize(os.Stdin, 4*1024*1024))
 	for scanner.Scan() {
 		itemsRead++
 
-		batch := bufPool.Get().(*bytes.Buffer)
-		batch.Reset()
-
+		buf := scanner.Bytes()
+		if len(buf) > batch.Cap()-batch.Len() {
+			batchChan <- batch
+			batch = bufPool.Get().(*bytes.Buffer)
+			batch.Reset()
+		}
 		batch.Write(scanner.Bytes())
 		batch.Write(newline)
-
-		batchChan <- batch
-
 	}
 
 	if err := scanner.Err(); err != nil {
 		log.Fatalf("Error reading input: %s", err.Error())
 	}
 
+	if batch.Len() != 0 {
+		batchChan <- batch
+	}
+
 	// Closing inputDone signals to the application that we've read everything and can now shut down.
 	close(inputDone)
 
-	return itemsRead
+	return itemsRead / 3
 }
 
 // processBatches reads byte buffers from batchChan and writes them to the target server, while tracking stats on the write.
