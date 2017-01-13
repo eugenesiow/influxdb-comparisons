@@ -78,6 +78,8 @@ func (d *ElasticSearchDevops) MaxCPUUsageHourByMinuteThirtyTwoHosts(q Query, sca
 func (d *ElasticSearchDevops) MaxCPUUsage12HoursByMinuteOneHost(q Query, scaleVar int) {
 	d.maxCPUUsageHourByMinuteNHosts(q.(*HTTPQuery), scaleVar, 1, 12*time.Hour)
 }
+func (d *ElasticSearchDevops) MaxCPUUsageDayByHour(q Query, scaleVar int) {
+}
 
 func (d *ElasticSearchDevops) maxCPUUsageHourByMinuteNHosts(qi Query, scaleVar, nhosts int, timeRange time.Duration) {
 	interval := d.AllInterval.RandWindow(timeRange)

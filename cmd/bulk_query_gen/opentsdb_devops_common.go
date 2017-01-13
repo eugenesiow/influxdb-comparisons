@@ -61,6 +61,9 @@ func (d *OpenTSDBDevops) MaxCPUUsage12HoursByMinuteOneHost(q Query, scaleVar int
 	d.maxCPUUsageHourByMinuteNHosts(q.(*HTTPQuery), scaleVar, 1, 12*time.Hour)
 }
 
+func (d *OpenTSDBDevops) MaxCPUUsageDayByHour(q Query, scaleVar int) {
+}
+
 // MaxCPUUsageHourByMinuteThirtyTwoHosts populates a Query with a query that looks like:
 // SELECT max(usage_user) from cpu where (hostname = '$HOSTNAME_1' or ... or hostname = '$HOSTNAME_N') and time >= '$HOUR_START' and time < '$HOUR_END' group by time(1m)
 func (d *OpenTSDBDevops) maxCPUUsageHourByMinuteNHosts(qi Query, scaleVar, nhosts int, timeRange time.Duration) {

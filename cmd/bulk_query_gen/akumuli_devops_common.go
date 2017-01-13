@@ -60,6 +60,70 @@ func (d *AkumuliDevops) MaxCPUUsage12HoursByMinuteOneHost(q Query, scaleVar int)
 	d.maxCPUUsageHourByMinuteNHosts(q.(*HTTPQuery), scaleVar, 1, 12*time.Hour)
 }
 
+func (d *AkumuliDevops) MaxCPUUsageDayByHour(q Query, scaleVar int) {
+	d.maxCPUUsageDayByHourNHosts(q.(*HTTPQuery), scaleVar, 1, 12*time.Hour)
+}
+
+func (d *AkumuliDevops) maxCPUUsageDayByHourNHosts(qi Query, scaleVar, nhosts int, timeRange time.Duration) {
+	interval := d.AllInterval.RandWindow(timeRange)
+	nn := rand.Perm(scaleVar)[:nhosts]
+	hostnames := []string{}
+	for _, n := range nn {
+		hostnames = append(hostnames, fmt.Sprintf("\"host_%d\"", n))
+	}
+
+	combinedHostnameClause := strings.Join(hostnames, ",")
+
+	startTimestamp := interval.StartUnixNano()
+	endTimestamp := interval.EndUnixNano()
+
+	const tmplString = `
+	{
+		"group-aggregate": {
+			"metric": "cpu.usage_user",
+			"func": [ "max" ],
+			"step": "1h"
+		},
+		"range": {
+			"from": {{.StartTimestamp}},
+			"to": {{.EndTimestamp}}
+		},
+		"where": {
+			"hostname": [ {{.CombinedHostnameClause}} ]
+		},
+		"output": {
+			"format": "csv"
+		}
+	}
+	`
+
+	tmpl := template.Must(template.New("tmpl").Parse(tmplString))
+	bodyWriter := new(bytes.Buffer)
+
+	arg := struct {
+		StartTimestamp, EndTimestamp int64
+		CombinedHostnameClause       string
+	}{
+		startTimestamp,
+		endTimestamp,
+		combinedHostnameClause,
+	}
+	err := tmpl.Execute(bodyWriter, arg)
+	if err != nil {
+		panic("logic error")
+	}
+
+	humanLabel := fmt.Sprintf("Akumuli max cpu, rand %4d hosts, rand %s by 1m", nhosts, timeRange)
+	q := qi.(*HTTPQuery)
+	q.HumanLabel = []byte(humanLabel)
+	q.HumanDescription = []byte(fmt.Sprintf("%s: %s", humanLabel, interval.StartString()))
+	q.Method = []byte("POST")
+	q.Path = []byte("/api/query")
+	q.Body = bodyWriter.Bytes()
+	q.StartTimestamp = interval.StartUnixNano()
+	q.EndTimestamp = interval.EndUnixNano()
+}
+
 func (d *AkumuliDevops) maxCPUUsageHourByMinuteNHosts(qi Query, scaleVar, nhosts int, timeRange time.Duration) {
 	interval := d.AllInterval.RandWindow(timeRange)
 	nn := rand.Perm(scaleVar)[:nhosts]
@@ -171,3 +235,4 @@ func (d *AkumuliDevops) MeanCPUUsageDayByHourAllHostsGroupbyHost(qi Query, _ int
 	q.StartTimestamp = interval.StartUnixNano()
 	q.EndTimestamp = interval.EndUnixNano()
 }
+

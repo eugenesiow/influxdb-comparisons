@@ -77,6 +77,9 @@ func (d *MongoDevops) MaxCPUUsage12HoursByMinuteOneHost(q Query, scaleVar int) {
 	d.maxCPUUsageHourByMinuteNHosts(q.(*MongoQuery), scaleVar, 1, 12*time.Hour)
 }
 
+func (d *MongoDevops) MaxCPUUsageDayByHour(q Query, scaleVar int) {
+}
+
 func (d *MongoDevops) maxCPUUsageHourByMinuteNHosts(qi Query, scaleVar, nhosts int, timeRange time.Duration) {
 	interval := d.AllInterval.RandWindow(timeRange)
 	nn := rand.Perm(scaleVar)[:nhosts]
