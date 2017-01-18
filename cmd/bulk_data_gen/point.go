@@ -8,6 +8,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+    "strings"
 	"sync"
 	"time"
 
@@ -413,17 +414,31 @@ func (p *Point) SerializeOpenTSDBBulk(w io.Writer) error {
 // the Akumuli RESP protocol.
 //
 // This function writes lines in this format:
-// +<metric> <tags>\r\n
+// +<metric list> <tags>\r\n
 // +<timestamp>\r\n
-// +<value>\r\n
+// *<num values>\r\n
+// +<value 1>\r\n
+// +<value 2>\r\n
+// ...
+// +<value N>\r\n
 //
 // For example:
-// +cpu.usage_user hostname=host_01 region-ap-southeast-2 datacenter=ap-southeast-2a\r\n
+// +cpu.usage_user|cpu.usage_system hostname=host_01 region-ap-southeast-2 datacenter=ap-southeast-2a\r\n
 // :14516064000000\r\n
+// *2\r\n
 // +99.5170917755353770\r\n
+// +21.7394547582189279\r\n
 //
 func (p *Point) SerializeAkumuliBulk(w io.Writer) error {
+
+    // Build metric name
 	metricBase := string(p.MeasurementName)
+    var metricNames []string
+    for i := 0; i < len(p.FieldKeys); i++ {
+        metricNames = append(metricNames, metricBase + "." + string(p.FieldKeys[i]))
+    }
+
+    // Build list of tags
 	var tagsBuilder bytes.Buffer
 	timestamp := p.Timestamp.UTC().UnixNano()
 	for i := 0; i < len(p.TagKeys); i++ {
@@ -431,9 +446,17 @@ func (p *Point) SerializeAkumuliBulk(w io.Writer) error {
 		tagsBuilder.WriteString(stag)
 	}
 	tagline := tagsBuilder.String()
+
+    metric := strings.Join(metricNames, "|")
+    line := fmt.Sprintf("+%s%s\r\n", metric, tagline)
+    io.WriteString(w, line)
+    line = fmt.Sprintf(":%d\r\n", timestamp)
+    io.WriteString(w, line)
+    line = fmt.Sprintf("*%d\r\n", len(p.FieldKeys))
+    io.WriteString(w, line)
+
 	var value float64
 	for i := 0; i < len(p.FieldKeys); i++ {
-		metric := metricBase + "." + string(p.FieldKeys[i])
 		switch x := p.FieldValues[i].(type) {
 		case int:
 			value = float64(x)
@@ -446,10 +469,6 @@ func (p *Point) SerializeAkumuliBulk(w io.Writer) error {
 		default:
 			panic("bad numeric value for Akumuli serialization")
 		}
-		line := fmt.Sprintf("+%s%s\r\n", metric, tagline)
-		io.WriteString(w, line)
-		line = fmt.Sprintf(":%d\r\n", timestamp)
-		io.WriteString(w, line)
 		line = fmt.Sprintf("+%.17g\r\n", value)
 		io.WriteString(w, line)
 	}

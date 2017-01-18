@@ -106,15 +106,19 @@ func scan(linesPerBatch int) int64 {
 
 	scanner := bufio.NewScanner(bufio.NewReaderSize(os.Stdin, 4*1024*1024))
 	for scanner.Scan() {
-		itemsRead++
 
 		buf := scanner.Bytes()
+
+        if buf[0] == '*' {
+            itemsRead++
+        }
+
 		if len(buf) > batch.Cap()-batch.Len() {
 			batchChan <- batch
 			batch = bufPool.Get().(*bytes.Buffer)
 			batch.Reset()
 		}
-		batch.Write(scanner.Bytes())
+		batch.Write(buf)
 		batch.Write(newline)
 	}
 
@@ -129,7 +133,7 @@ func scan(linesPerBatch int) int64 {
 	// Closing inputDone signals to the application that we've read everything and can now shut down.
 	close(inputDone)
 
-	return itemsRead / 3
+	return itemsRead
 }
 
 // processBatches reads byte buffers from batchChan and writes them to the target server, while tracking stats on the write.

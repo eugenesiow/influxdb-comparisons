@@ -16,7 +16,7 @@ echo "Benchmarking Akumuli"
 cat $AKUMULI_1host12hr | gunzip | ./query_benchmarker_akumuli/query_benchmarker_akumuli --urls=http://localhost:8181 --print-interval=0 --limit=1000 --workers=2
 cat $AKUMULI_1host1hr | gunzip | ./query_benchmarker_akumuli/query_benchmarker_akumuli --urls=http://localhost:8181 --print-interval=0 --limit=1000 --workers=2
 cat $AKUMULI_8host1hr | gunzip | ./query_benchmarker_akumuli/query_benchmarker_akumuli --urls=http://localhost:8181 --print-interval=0 --limit=1000 --workers=2
-cat $AKUMULI_1host1day | gunzip | ./query_benchmarker_akumuli/query_benchmarker_akumuli --urls=http://localhost:8181 --print-interval=0 --limit=1000 --workers=2
+#cat $AKUMULI_1host1day | gunzip | ./query_benchmarker_akumuli/query_benchmarker_akumuli --urls=http://localhost:8181 --print-interval=0 --limit=1000 --workers=2
 
 echo ""
 echo "Benchmarking Influx"
@@ -24,4 +24,4 @@ echo "Benchmarking Influx"
 cat $INFLUX_1host12hr | gunzip | ./query_benchmarker_influxdb/query_benchmarker_influxdb --url=http://localhost:8086 --print-interval=0 --limit=1000 --workers=2
 cat $INFLUX_1host1hr | gunzip | ./query_benchmarker_influxdb/query_benchmarker_influxdb --url=http://localhost:8086 --print-interval=0 --limit=1000 --workers=2
 cat $INFLUX_8host1hr | gunzip | ./query_benchmarker_influxdb/query_benchmarker_influxdb --url=http://localhost:8086 --print-interval=0 --limit=1000 --workers=2
-cat $INFLUX_1host1day | gunzip | ./query_benchmarker_influxdb/query_benchmarker_influxdb --url=http://localhost:8086 --print-interval=0 --limit=1000 --workers=2
+#cat $INFLUX_1host1day | gunzip | ./query_benchmarker_influxdb/query_benchmarker_influxdb --url=http://localhost:8086 --print-interval=0 --limit=1000 --workers=2
