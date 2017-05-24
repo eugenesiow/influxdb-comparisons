@@ -25,9 +25,11 @@ var (
 type DevopsSimulator struct {
 	eof bool
 	reader *csv.Reader
+	fileObj *os.File
 }
 
 func (g *DevopsSimulator) Finished() bool {
+	g.fileObj.Close()
 	return g.eof
 }
 
@@ -44,6 +46,7 @@ func (d *DevopsSimulatorConfig) ToSimulator() *DevopsSimulator {
 	dg := &DevopsSimulator{
 		reader: csv.NewReader(file),
 		eof: false,
+		fileObj: file,
 	}
 
 	return dg
@@ -67,6 +70,10 @@ func (d *DevopsSimulator) Next(p *Point) {
 	p.SetTimestamp(&newTime)
 
 	for i := range ShelburneFields {
+		if record[i+1] == "" || record[i+1] == "NaN" {
+			d.Next(p)
+			return
+		}
 		p.AppendField(ShelburneFields[i], record[i+1])
 	}
 

@@ -120,6 +120,9 @@ func main() {
 		// in the default case this is always true
 		if currentInterleavedGroup == interleavedGenerationGroupID {
 			//println("printing")
+			if point.Timestamp==nil {
+				break
+			}
 			err := serializer(point, out)
 			if err != nil {
 				log.Fatal(err)
