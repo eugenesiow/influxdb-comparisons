@@ -26,7 +26,7 @@ import (
 var formatChoices = []string{"akumuli", "influx-bulk", "es-bulk", "cassandra", "mongo", "opentsdb"}
 
 // Use case choices:
-var useCaseChoices = []string{"shelburne"}
+var useCaseChoices = []string{"shelburne","green_taxi"}
 
 // Program option vars:
 var (
@@ -48,7 +48,7 @@ var (
 func init() {
 	flag.StringVar(&format, "format", formatChoices[0], fmt.Sprintf("Format to emit. (choices: %s)", strings.Join(formatChoices, ", ")))
 
-	flag.StringVar(&useCase, "use-case", useCaseChoices[0], "Use case to model. (choices: devops, iot)")
+	flag.StringVar(&useCase, "use-case", useCaseChoices[0], "Use case to model. (choices: shelburne, green_taxi)")
 
 	flag.StringVar(&inputFile, "input", "data.csv", "Input file.")
 
@@ -83,15 +83,11 @@ func main() {
 
 	var sim Simulator
 
-	switch useCase {
-	case "shelburne":
-		cfg := &DevopsSimulatorConfig{
-			filePath: inputFile,
-		}
-		sim = cfg.ToSimulator()
-	default:
-		panic("unreachable")
+	cfg := &DevopsSimulatorConfig{
+		filePath: inputFile,
+		useCase: useCase,
 	}
+	sim = cfg.ToSimulator()
 
 	var serializer func(*Point, io.Writer) error
 	switch format {
