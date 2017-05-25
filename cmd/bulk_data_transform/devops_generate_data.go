@@ -111,9 +111,10 @@ func (d *DevopsSimulator) Next(p *Point) {
 
 		p.SetMeasurementName([]byte("green_taxi"))
 		layout := "2006-01-02 15:04:05"
-		t, err := time.Parse(layout, record[0])
+		t, err := time.Parse(layout, record[1])
 		if err != nil {
 			fmt.Println(err)
+			fmt.Println(record)
 		}
 		p.SetTimestamp(&t)
 
