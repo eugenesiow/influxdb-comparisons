@@ -42,6 +42,10 @@ var (
 		[]byte("trip_type"),
 		[]byte("point_date"),
 	}
+
+	GreenTaxiCols = []int{
+		0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,
+	}
 )
 
 // A DevopsSimulator generates data similar to telemetry from Telegraf.
@@ -94,6 +98,7 @@ func (d *DevopsSimulator) Next(p *Point) {
 		p.SetMeasurementName([]byte("wsda_sensor"))
 		newTime := nsToTime(record[0])
 		p.SetTimestamp(&newTime)
+		p.AppendTag([]byte("shelburne"),[]byte("wsda_sensor"))
 
 		for i := range ShelburneFields {
 			if record[i+1] == "" || record[i+1] == "NaN" {
@@ -118,13 +123,27 @@ func (d *DevopsSimulator) Next(p *Point) {
 		}
 		p.SetTimestamp(&t)
 
+		//for i := range GreenTaxiFields {
+		//	if record[GreenTaxiCols[i]] == "" || record[GreenTaxiCols[i]] == "NaN" {
+		//		d.Next(p)
+		//		return
+		//	}
+		//	p.AppendField(GreenTaxiFields[i], record[GreenTaxiCols[i]])
+		//}
+
 		msLong, _ := strconv.ParseInt(record[0], 10,64)
 		p.AppendField(GreenTaxiFields[0],msLong)
-		p.AppendField(GreenTaxiFields[1],record[2])
+		t2, err := time.Parse(layout, record[2])
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println(record)
+		}
+		p.AppendField(GreenTaxiFields[1],t2.Nanosecond())
+		p.AppendTag([]byte("taxi"),[]byte("green"))
 		if record[3]=="true" {
-			p.AppendField(GreenTaxiFields[2],true)
+			p.AppendField(GreenTaxiFields[2],1)
 		} else {
-			p.AppendField(GreenTaxiFields[2],false)
+			p.AppendField(GreenTaxiFields[2],0)
 		}
 		msLong2, _ := strconv.ParseInt(record[4], 10,64)
 		p.AppendField(GreenTaxiFields[3],msLong2)
@@ -162,7 +181,12 @@ func (d *DevopsSimulator) Next(p *Point) {
 			msLong5, _ := strconv.ParseInt(record[20], 10,64)
 			p.AppendField(GreenTaxiFields[18],msLong5)
 		}
-		p.AppendField(GreenTaxiFields[19],record[21])
+		t3, err := time.Parse(layout, record[21])
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println(record)
+		}
+		p.AppendField(GreenTaxiFields[19],t3.Nanosecond())
 
 	}
 
