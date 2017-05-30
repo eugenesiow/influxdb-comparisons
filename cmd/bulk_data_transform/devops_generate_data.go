@@ -46,7 +46,10 @@ var (
 	GreenTaxiCols = []int{
 		0,2,3,4,5,6,7,8,9,10,11,12,13,14,15,17,18,19,20,21,
 	}
+
+	numOfCols = 0
 )
+var srBenchFields []string
 
 // A DevopsSimulator generates data similar to telemetry from Telegraf.
 // It fulfills the Simulator interface.
@@ -54,6 +57,7 @@ type DevopsSimulator struct {
 	eof bool
 	reader *csv.Reader
 	useCase string
+	format string
 }
 
 func (g *DevopsSimulator) Finished() bool {
@@ -65,6 +69,7 @@ func (g *DevopsSimulator) Finished() bool {
 type DevopsSimulatorConfig struct {
 	filePath string
 	useCase string
+	format string
 }
 
 func (d *DevopsSimulatorConfig) ToSimulator() *DevopsSimulator {
@@ -76,6 +81,7 @@ func (d *DevopsSimulatorConfig) ToSimulator() *DevopsSimulator {
 		reader: csv.NewReader(file),
 		eof: false,
 		useCase: useCase,
+		format: format,
 	}
 
 	return dg
@@ -98,10 +104,13 @@ func (d *DevopsSimulator) Next(p *Point) {
 		p.SetMeasurementName([]byte("wsda_sensor"))
 		newTime := nsToTime(record[0])
 		p.SetTimestamp(&newTime)
-		p.AppendTag([]byte("shelburne"),[]byte("wsda_sensor"))
+		if format=="akumuli" {
+			p.AppendTag([]byte("shelburne"),[]byte("wsda_sensor"))
+		}
 
 		for i := range ShelburneFields {
 			if record[i+1] == "" || record[i+1] == "NaN" {
+				p.Reset()
 				d.Next(p)
 				return
 			}
@@ -188,6 +197,39 @@ func (d *DevopsSimulator) Next(p *Point) {
 		}
 		p.AppendField(GreenTaxiFields[19],t3.Nanosecond())
 
+	} else if useCase=="srbench" {
+		if record[0] == "time" {
+			numOfCols = len(record)
+			srBenchFields = make([]string, numOfCols)
+			copy(srBenchFields, record)
+			d.Next(p)
+			return
+		}
+
+
+		p.SetMeasurementName([]byte("srbench"))
+		layout := "2006-01-02 15:04:05"
+		t, err := time.Parse(layout, record[0])
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println(record)
+		}
+		p.SetTimestamp(&t)
+
+		if format=="akumuli" {
+			p.AppendTag([]byte("srbench"),[]byte("lsd_blizzard"))
+		}
+
+		for i := 0; i < numOfCols - 1; i++ {
+			if record[i+1]=="false" {
+				p.AppendField([]byte(srBenchFields[i+1]), 0)
+			} else if record[i+1]=="true" {
+				p.AppendField([]byte(srBenchFields[i+1]), 1)
+			} else {
+				msFloat, _ := strconv.ParseFloat(record[i+1],64)
+				p.AppendField([]byte(srBenchFields[i+1]), msFloat)
+			}
+		}
 	}
 
 	return

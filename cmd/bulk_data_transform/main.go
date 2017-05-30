@@ -20,13 +20,14 @@ import (
 	"log"
 	"os"
 	"strings"
+	"path/filepath"
 )
 
 // Output data format choices:
 var formatChoices = []string{"akumuli", "influx-bulk", "es-bulk", "cassandra", "mongo", "opentsdb"}
 
 // Use case choices:
-var useCaseChoices = []string{"shelburne","green_taxi"}
+var useCaseChoices = []string{"shelburne","green_taxi","srbench"}
 
 // Program option vars:
 var (
@@ -48,7 +49,7 @@ var (
 func init() {
 	flag.StringVar(&format, "format", formatChoices[0], fmt.Sprintf("Format to emit. (choices: %s)", strings.Join(formatChoices, ", ")))
 
-	flag.StringVar(&useCase, "use-case", useCaseChoices[0], "Use case to model. (choices: shelburne, green_taxi)")
+	flag.StringVar(&useCase, "use-case", useCaseChoices[0], "Use case to model. (choices: shelburne, green_taxi, srbench)")
 
 	flag.StringVar(&inputFile, "input", "data.csv", "Input file.")
 
@@ -77,15 +78,30 @@ func init() {
 }
 
 func main() {
+	switch useCase {
+	case "srbench":
+		filepath.Walk(inputFile, func(path string, info os.FileInfo, err error) error {
+			if !info.IsDir() {
+				//println(info.Name())
+				runGenerator(path)
+			}
+			return nil
+		})
+	default:
+		runGenerator(inputFile)
+	}
+}
 
+func runGenerator(inputPath string) {
 	out := bufio.NewWriterSize(os.Stdout, 4<<20)
 	defer out.Flush()
 
 	var sim Simulator
 
 	cfg := &DevopsSimulatorConfig{
-		filePath: inputFile,
+		filePath: inputPath,
 		useCase: useCase,
+		format: format,
 	}
 	sim = cfg.ToSimulator()
 
