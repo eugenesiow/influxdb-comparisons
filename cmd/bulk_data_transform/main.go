@@ -82,8 +82,10 @@ func main() {
 	case "srbench":
 		filepath.Walk(inputFile, func(path string, info os.FileInfo, err error) error {
 			if !info.IsDir() {
+				if filepath.Ext(path) == ".csv" {
+					runGenerator(path)
+				}
 				//println(info.Name())
-				runGenerator(path)
 			}
 			return nil
 		})

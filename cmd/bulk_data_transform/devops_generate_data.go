@@ -8,6 +8,7 @@ import (
 	"io"
 	"strconv"
 	"fmt"
+	"path"
 )
 
 var (
@@ -58,6 +59,7 @@ type DevopsSimulator struct {
 	reader *csv.Reader
 	useCase string
 	format string
+	filePath string
 }
 
 func (g *DevopsSimulator) Finished() bool {
@@ -80,8 +82,9 @@ func (d *DevopsSimulatorConfig) ToSimulator() *DevopsSimulator {
 	dg := &DevopsSimulator{
 		reader: csv.NewReader(file),
 		eof: false,
-		useCase: useCase,
-		format: format,
+		useCase: d.useCase,
+		format: d.format,
+		filePath: d.filePath,
 	}
 
 	return dg
@@ -200,14 +203,20 @@ func (d *DevopsSimulator) Next(p *Point) {
 	} else if useCase=="srbench" {
 		if record[0] == "time" {
 			numOfCols = len(record)
+			if numOfCols<=1 {
+				p.Reset()
+				return
+			}
 			srBenchFields = make([]string, numOfCols)
 			copy(srBenchFields, record)
 			d.Next(p)
 			return
 		}
+		fName := path.Base(d.filePath)
+		extName := path.Ext(d.filePath)
+		bName := fName[:len(fName)-len(extName)]
 
-
-		p.SetMeasurementName([]byte("srbench"))
+		p.SetMeasurementName([]byte("_"+bName))
 		layout := "2006-01-02 15:04:05"
 		t, err := time.Parse(layout, record[0])
 		if err != nil {
@@ -215,6 +224,10 @@ func (d *DevopsSimulator) Next(p *Point) {
 			fmt.Println(record)
 		}
 		p.SetTimestamp(&t)
+		if t.Nanosecond() < 0 {
+			p.Reset()
+			return
+		}
 
 		if format=="akumuli" {
 			p.AppendTag([]byte("srbench"),[]byte("lsd_blizzard"))
@@ -222,9 +235,9 @@ func (d *DevopsSimulator) Next(p *Point) {
 
 		for i := 0; i < numOfCols - 1; i++ {
 			if record[i+1]=="false" {
-				p.AppendField([]byte(srBenchFields[i+1]), 0)
+				p.AppendField([]byte(srBenchFields[i+1]), 0.0)
 			} else if record[i+1]=="true" {
-				p.AppendField([]byte(srBenchFields[i+1]), 1)
+				p.AppendField([]byte(srBenchFields[i+1]), 1.0)
 			} else {
 				msFloat, _ := strconv.ParseFloat(record[i+1],64)
 				p.AppendField([]byte(srBenchFields[i+1]), msFloat)
