@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"fmt"
 	"path"
+	"strings"
 )
 
 var (
@@ -107,7 +108,7 @@ func (d *DevopsSimulator) Next(p *Point) {
 		p.SetMeasurementName([]byte("wsda_sensor"))
 		newTime := nsToTime(record[0])
 		p.SetTimestamp(&newTime)
-		if format=="akumuli" {
+		if format=="akumuli" || format=="opentsdb" {
 			p.AppendTag([]byte("shelburne"),[]byte("wsda_sensor"))
 		}
 
@@ -216,7 +217,12 @@ func (d *DevopsSimulator) Next(p *Point) {
 		extName := path.Ext(d.filePath)
 		bName := fName[:len(fName)-len(extName)]
 
-		p.SetMeasurementName([]byte("_"+bName))
+		if format=="es-bulk" {
+			p.SetMeasurementName([]byte("sr"+strings.ToLower(bName)))
+		} else {
+			p.SetMeasurementName([]byte("_"+bName))
+		}
+
 		layout := "2006-01-02 15:04:05"
 		t, err := time.Parse(layout, record[0])
 		if err != nil {
@@ -229,7 +235,7 @@ func (d *DevopsSimulator) Next(p *Point) {
 			return
 		}
 
-		if format=="akumuli" {
+		if format=="akumuli" || format=="opentsdb" {
 			p.AppendTag([]byte("srbench"),[]byte("lsd_blizzard"))
 		}
 
